@@ -1,0 +1,29 @@
+{
+  "version": 1.1,
+  "atDirectives": [
+    {
+      "name": "@theme",
+      "description": "Define theme values for Tailwind CSS v4"
+    },
+    {
+      "name": "@import",
+      "description": "Import Tailwind CSS v4"
+    },
+    {
+      "name": "@variant",
+      "description": "Define custom variant for Tailwind CSS v4"
+    },
+    {
+      "name": "@utility",
+      "description": "Define custom utility for Tailwind CSS v4"
+    },
+    {
+      "name": "@layer",
+      "description": "Define layer for Tailwind CSS v4"
+    },
+    {
+      "name": "@keyframes",
+      "description": "CSS keyframes"
+    }
+  ]
+}

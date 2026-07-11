@@ -1,0 +1,215 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userPath(storeId) {
+      return /databases/$(database)/documents/stores/$(storeId)/users/$(request.auth.uid);
+    }
+
+    function isStoreMember(storeId) {
+      return signedIn() && exists(userPath(storeId));
+    }
+
+    function currentUser(storeId) {
+      return get(userPath(storeId)).data;
+    }
+
+    function isActiveMember(storeId) {
+      return isStoreMember(storeId)
+        && currentUser(storeId).isActive == true
+        && currentUser(storeId).storeId == storeId;
+    }
+
+    function role(storeId) {
+      return currentUser(storeId).role;
+    }
+
+    function hasRole(storeId, roles) {
+      return isActiveMember(storeId)
+        && (role(storeId) == 'owner' || role(storeId) in roles);
+    }
+
+    function isSelf(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function createsStoreScopedDoc(storeId) {
+      return request.resource.data.storeId == storeId;
+    }
+
+    function keepsStoreScope(storeId) {
+      return resource.data.storeId == storeId
+        && request.resource.data.storeId == resource.data.storeId;
+    }
+
+    function changedOnly(fields) {
+      return request.resource.data.diff(resource.data).changedKeys().hasOnly(fields);
+    }
+
+    function isOrderCreate(storeId) {
+      return hasRole(storeId, ['manager', 'cashier'])
+        && createsStoreScopedDoc(storeId)
+        && request.resource.data.cashierId == request.auth.uid
+        && request.resource.data.status == 'paid'
+        && request.resource.data.paymentStatus == 'paid';
+    }
+
+    function isOrderVoid(storeId) {
+      return hasRole(storeId, ['manager'])
+        && resource.data.status != 'voided'
+        && request.resource.data.status == 'voided'
+        && request.resource.data.paymentStatus == 'refunded'
+        && request.resource.data.voidApprovedBy == request.auth.uid
+        && request.resource.data.voidReason is string
+        && request.resource.data.voidReason.size() > 0
+        && changedOnly([
+          'status',
+          'paymentStatus',
+          'voidReason',
+          'voidApprovedBy',
+          'timestamps'
+        ]);
+    }
+
+    function isKdsOrderUpdate(storeId) {
+      return hasRole(storeId, ['manager', 'barista'])
+        && resource.data.status == 'paid'
+        && request.resource.data.status in ['paid', 'completed']
+        && changedOnly(['items', 'status', 'timestamps']);
+    }
+
+    match /stores/{storeId} {
+      allow read: if isActiveMember(storeId);
+      allow create, update: if hasRole(storeId, ['manager']);
+      allow delete: if hasRole(storeId, []);
+
+      match /users/{userId} {
+        allow get: if isSelf(userId) || hasRole(storeId, ['manager']);
+        allow list: if hasRole(storeId, ['manager']);
+        allow create, delete: if hasRole(storeId, []);
+        allow update: if hasRole(storeId, [])
+          || (
+            isSelf(userId)
+            && request.resource.data.diff(resource.data).changedKeys()
+              .hasOnly(['lastLogin', 'updatedAt'])
+          );
+      }
+
+      match /settings/{settingId} {
+        allow read: if isActiveMember(storeId);
+        allow create, update: if hasRole(storeId, ['manager'])
+          && createsStoreScopedDoc(storeId);
+        allow delete: if hasRole(storeId, []);
+      }
+
+      match /categories/{categoryId} {
+        allow read: if isActiveMember(storeId);
+        allow create: if hasRole(storeId, ['manager'])
+          && createsStoreScopedDoc(storeId);
+        allow update: if hasRole(storeId, ['manager'])
+          && keepsStoreScope(storeId);
+        allow delete: if hasRole(storeId, ['manager']);
+      }
+
+      match /menu_items/{menuItemId} {
+        allow read: if isActiveMember(storeId);
+        allow create: if hasRole(storeId, ['manager'])
+          && createsStoreScopedDoc(storeId);
+        allow update: if hasRole(storeId, ['manager'])
+          && keepsStoreScope(storeId);
+        allow delete: if hasRole(storeId, ['manager']);
+      }
+
+      match /ingredients/{ingredientId} {
+        allow read: if hasRole(storeId, ['manager', 'cashier', 'barista', 'viewer']);
+        allow create: if hasRole(storeId, ['manager', 'barista'])
+          && createsStoreScopedDoc(storeId);
+        allow update: if hasRole(storeId, ['manager', 'cashier', 'barista'])
+          && keepsStoreScope(storeId);
+        allow delete: if hasRole(storeId, ['manager']);
+      }
+
+      match /stock_transactions/{transactionId} {
+        allow read: if hasRole(storeId, ['manager', 'barista']);
+        allow create: if hasRole(storeId, ['manager', 'cashier', 'barista'])
+          && createsStoreScopedDoc(storeId);
+        allow update, delete: if false;
+      }
+
+      match /orders/{orderId} {
+        allow read: if hasRole(storeId, ['manager', 'cashier', 'barista', 'viewer']);
+        allow create: if isOrderCreate(storeId);
+        allow update: if isKdsOrderUpdate(storeId) || isOrderVoid(storeId);
+        allow delete: if false;
+      }
+
+      match /shifts/{shiftId} {
+        allow read: if hasRole(storeId, ['manager'])
+          || (isActiveMember(storeId) && resource.data.userId == request.auth.uid);
+        allow create: if hasRole(storeId, ['manager', 'cashier', 'barista'])
+          && createsStoreScopedDoc(storeId)
+          && request.resource.data.userId == request.auth.uid
+          && request.resource.data.role == role(storeId)
+          && request.resource.data.status == 'active';
+        allow update: if hasRole(storeId, ['manager'])
+          || (
+            isActiveMember(storeId)
+            && resource.data.userId == request.auth.uid
+            && request.resource.data.userId == resource.data.userId
+            && request.resource.data.storeId == resource.data.storeId
+          );
+        allow delete: if false;
+      }
+
+      match /customers/{customerId} {
+        allow read: if hasRole(storeId, ['manager', 'cashier']);
+        allow create: if hasRole(storeId, ['manager', 'cashier'])
+          && createsStoreScopedDoc(storeId);
+        allow update: if hasRole(storeId, ['manager', 'cashier'])
+          && keepsStoreScope(storeId);
+        allow delete: if hasRole(storeId, ['manager']);
+      }
+
+      match /loyalty_transactions/{transactionId} {
+        allow read: if hasRole(storeId, ['manager', 'cashier']);
+        allow create: if hasRole(storeId, ['manager', 'cashier'])
+          && createsStoreScopedDoc(storeId);
+        allow update, delete: if false;
+      }
+
+      match /activity_logs/{logId} {
+        allow read: if hasRole(storeId, ['manager']);
+        allow create: if isActiveMember(storeId)
+          && createsStoreScopedDoc(storeId)
+          && request.resource.data.userId == request.auth.uid;
+        allow update, delete: if false;
+      }
+
+      match /payment_methods/{paymentMethodId} {
+        allow read: if isActiveMember(storeId);
+        allow create, update, delete: if hasRole(storeId, ['manager']);
+      }
+
+      match /expenses/{expenseId} {
+        allow read, create, update, delete: if hasRole(storeId, ['manager']);
+      }
+
+      match /counters/{counterId} {
+        allow read, create, update: if hasRole(storeId, ['manager', 'cashier']);
+        allow delete: if false;
+      }
+
+      match /{document=**} {
+        allow read, write: if false;
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
