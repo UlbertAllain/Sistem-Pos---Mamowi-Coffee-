@@ -1,12 +1,41 @@
 'use client';
 
-import { ArrowRight, Coffee, Eye, EyeOff, LoaderCircle, ShieldCheck, Sparkles } from 'lucide-react';
+import {
+  ArrowRight,
+  Check,
+  Coffee,
+  Eye,
+  EyeOff,
+  LoaderCircle,
+  LockKeyhole,
+  PackageCheck,
+  ReceiptText,
+  ShieldCheck,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/features/auth/auth-context';
 import { getErrorMessage } from '@/lib/errors';
+
+const workspaceNotes = [
+  {
+    icon: ReceiptText,
+    title: 'Transaksi rapi',
+    description: 'Order, pembayaran, dan nomor struk diproses dalam satu alur.',
+  },
+  {
+    icon: PackageCheck,
+    title: 'Stok tetap sinkron',
+    description: 'Perubahan stok sensitif hanya diproses lewat server.',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Akses terkontrol',
+    description: 'Workspace dibuka sesuai toko dan peran akun staf.',
+  },
+] as const;
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,15 +47,18 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!loading && profile) router.replace('/dashboard');
+    if (!loading && profile) {
+      router.replace('/dashboard');
+    }
   }, [loading, profile, router]);
 
-  const handleSubmit = async (event: FormEvent) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitting(true);
     setError(null);
+
     try {
-      await signIn(email, password);
+      await signIn(email.trim(), password);
     } catch (cause) {
       setError(getErrorMessage(cause));
     } finally {
@@ -34,25 +66,173 @@ export default function LoginPage() {
     }
   };
 
-  return <main className="login-page">
-    <section className="login-showcase">
-      <div className="login-brand"><div className="brand-mark brand-mark-lg"><Coffee size={26} /></div><div><strong>Mamowi Coffee</strong><span>Operations System</span></div></div>
-      <div className="login-showcase-copy"><span className="showcase-pill"><Sparkles size={14} /> POS V5</span><h1>Lebih cepat melayani. Lebih tenang mengelola.</h1><p>Workspace kasir modern dengan transaksi server-side, kontrol stok, dan laporan harian dalam satu sistem.</p></div>
-      <div className="showcase-status"><ShieldCheck size={20} /><div><strong>Secure server transaction</strong><span>Checkout, void, dan adjustment diproses lewat Firebase Admin.</span></div></div>
-      <div className="showcase-orb orb-one" /><div className="showcase-orb orb-two" />
-    </section>
+  const displayedError = error ?? authError;
 
-    <section className="login-form-panel">
-      <div className="login-card">
-        <div className="login-heading"><span className="eyebrow">Staff access</span><h2>Selamat datang kembali</h2><p>Masuk dengan akun staf yang terdaftar pada toko Mamowi.</p></div>
-        <form onSubmit={handleSubmit} className="form-stack">
-          <label className="field"><span>Email</span><input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="nama@mamowi.com" required /></label>
-          <label className="field"><span>Password</span><div className="password-field"><input type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Masukkan password" required /><button type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></label>
-          {error || authError ? <div className="inline-alert inline-alert-error">{error ?? authError}</div> : null}
-          <Button type="submit" size="lg" disabled={submitting}>{submitting ? <><LoaderCircle className="spin" size={18} /> Memproses...</> : <>Masuk ke workspace <ArrowRight size={18} /></>}</Button>
-        </form>
-        <p className="login-footnote">Akun dikelola melalui Firebase Authentication dan profil user toko.</p>
+  return (
+    <main className="tactile-login-page">
+      <div className="tactile-login-shell">
+        <header className="tactile-login-header">
+          <div className="tactile-login-brand">
+            <span className="tactile-login-index">01</span>
+            <div>
+              <strong>Mamowi Coffee</strong>
+              <span>STAFF OPERATIONS BOARD</span>
+            </div>
+          </div>
+
+          <div className="tactile-login-system-status">
+            <span className="tactile-login-status-dot" aria-hidden="true" />
+            Server workspace ready
+          </div>
+        </header>
+
+        <section className="tactile-login-board">
+          <div className="tactile-login-story" aria-label="Tentang Mamowi POS">
+            <span className="tactile-login-tape tactile-login-tape-left" aria-hidden="true" />
+            <span className="tactile-login-tape tactile-login-tape-right" aria-hidden="true" />
+
+            <div className="tactile-login-story-topline">
+              <span>POS / V5</span>
+              <span>SECURE SERVER FLOW</span>
+            </div>
+
+            <div className="tactile-login-title-wrap">
+              <p className="tactile-login-kicker">Workspace harian untuk tim Mamowi</p>
+              <h1>
+                Serve faster.
+                <span>Stay in control.</span>
+              </h1>
+              <p className="tactile-login-intro">
+                Satu meja kerja untuk melayani pesanan, menjaga stok, dan membaca
+                aktivitas toko tanpa alur yang berbelit.
+              </p>
+            </div>
+
+            <div className="tactile-login-note tactile-login-note-yellow">
+              <span>DAILY NOTE</span>
+              <strong>Simple flow.<br />Clear numbers.</strong>
+              <small>Focus on the counter, not the software.</small>
+            </div>
+
+            <div className="tactile-login-feature-grid">
+              {workspaceNotes.map(({ icon: Icon, title, description }, index) => (
+                <article className="tactile-login-feature" key={title}>
+                  <span className="tactile-login-feature-number">
+                    {String(index + 1).padStart(2, '0')}
+                  </span>
+                  <Icon size={18} strokeWidth={1.8} aria-hidden="true" />
+                  <div>
+                    <strong>{title}</strong>
+                    <p>{description}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="tactile-login-sketch" aria-hidden="true">
+              <Coffee size={34} strokeWidth={1.5} />
+              <span>fresh order<br />clean record</span>
+            </div>
+
+            <footer className="tactile-login-story-footer">
+              <span>MAMOWI COFFEE • INTERNAL SYSTEM</span>
+              <span>FIREBASE ADMIN / NEXT.JS</span>
+            </footer>
+          </div>
+
+          <aside className="tactile-login-access">
+            <div className="tactile-login-access-label">
+              <LockKeyhole size={15} aria-hidden="true" />
+              Staff access only
+            </div>
+
+            <div className="tactile-login-card">
+              <div className="tactile-login-card-heading">
+                <span>WELCOME BACK</span>
+                <h2>Masuk ke meja kerja.</h2>
+                <p>Gunakan akun staf yang sudah terdaftar pada toko Mamowi.</p>
+              </div>
+
+              <form className="tactile-login-form" onSubmit={handleSubmit}>
+                <label className="tactile-login-field">
+                  <span>Email staf</span>
+                  <input
+                    type="email"
+                    autoComplete="email"
+                    inputMode="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    placeholder="nama@mamowi.com"
+                    required
+                    disabled={submitting}
+                  />
+                </label>
+
+                <label className="tactile-login-field">
+                  <span>Password</span>
+                  <div className="tactile-login-password">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      autoComplete="current-password"
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      placeholder="Masukkan password"
+                      required
+                      disabled={submitting}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((value) => !value)}
+                      aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                      aria-pressed={showPassword}
+                      disabled={submitting}
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </label>
+
+                {displayedError ? (
+                  <div className="tactile-login-alert" role="alert">
+                    <span aria-hidden="true">!</span>
+                    <p>{displayedError}</p>
+                  </div>
+                ) : null}
+
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="tactile-login-submit"
+                  disabled={submitting || loading}
+                >
+                  {submitting ? (
+                    <>
+                      <LoaderCircle className="spin" size={18} />
+                      Memeriksa akun...
+                    </>
+                  ) : (
+                    <>
+                      Masuk ke workspace
+                      <ArrowRight size={18} />
+                    </>
+                  )}
+                </Button>
+              </form>
+
+              <div className="tactile-login-security">
+                <Check size={15} aria-hidden="true" />
+                <span>
+                  Checkout dan perubahan stok sensitif diproses melalui server.
+                </span>
+              </div>
+            </div>
+
+            <p className="tactile-login-help">
+              Tidak bisa masuk? Hubungi owner atau manager untuk memeriksa akun staf.
+            </p>
+          </aside>
+        </section>
       </div>
-    </section>
-  </main>;
+    </main>
+  );
 }
