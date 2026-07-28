@@ -1,0 +1,115 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userPath(storeId) {
+      return /databases/$(database)/documents/stores/$(storeId)/users/$(request.auth.uid);
+    }
+
+    function isStoreMember(storeId) {
+      return signedIn()
+        && exists(userPath(storeId))
+        && get(userPath(storeId)).data.isActive == true
+        && get(userPath(storeId)).data.storeId == storeId;
+    }
+
+    function isAdmin(storeId) {
+      return isStoreMember(storeId)
+        && get(userPath(storeId)).data.role in ['owner', 'manager'];
+    }
+
+    function isOwner(storeId) {
+      return isStoreMember(storeId)
+        && get(userPath(storeId)).data.role == 'owner';
+    }
+
+    match /stores/{storeId} {
+      allow read: if isStoreMember(storeId);
+      allow write: if false;
+
+      match /users/{userId} {
+        allow read: if isStoreMember(storeId)
+          && (request.auth.uid == userId || isAdmin(storeId));
+        allow create, update: if isOwner(storeId)
+          && request.resource.data.storeId == storeId;
+        allow delete: if isOwner(storeId);
+      }
+
+      match /settings/{settingsId} {
+        allow read: if settingsId == 'general' && isStoreMember(storeId);
+        allow create, update: if settingsId == 'general'
+          && isAdmin(storeId)
+          && request.resource.data.storeId == storeId;
+        allow delete: if false;
+      }
+
+      match /categories/{categoryId} {
+        allow read: if isStoreMember(storeId);
+        allow create, update: if isAdmin(storeId)
+          && request.resource.data.storeId == storeId;
+        allow delete: if false;
+      }
+
+      match /products/{productId} {
+        allow read: if isStoreMember(storeId);
+        allow create: if isAdmin(storeId)
+          && request.resource.data.storeId == storeId;
+        allow update: if isAdmin(storeId)
+          && request.resource.data.storeId == storeId
+          && request.resource.data.stockQty == resource.data.stockQty
+          && request.resource.data.sku == resource.data.sku;
+        allow delete: if false;
+      }
+
+      match /sku_indexes/{sku} {
+        allow read: if isStoreMember(storeId);
+        allow create, update: if isAdmin(storeId)
+          && request.resource.data.storeId == storeId;
+        allow delete: if isAdmin(storeId);
+      }
+
+      match /payment_methods/{methodId} {
+        allow read: if isStoreMember(storeId);
+        allow create, update: if isAdmin(storeId)
+          && request.resource.data.storeId == storeId;
+        allow delete: if false;
+      }
+
+      // TEMPORARY: only for the controlled legacy migration window.
+      match /menu_items/{legacyItemId} {
+        allow read: if isAdmin(storeId);
+        allow write: if false;
+      }
+
+      match /menu_categories/{legacyCategoryId} {
+        allow read: if isAdmin(storeId);
+        allow write: if false;
+      }
+
+      // Seluruh mutasi finansial dan stok dijalankan oleh Firebase Admin di server.
+      // Admin SDK melewati Security Rules; endpoint server wajib memverifikasi ID token dan role.
+      match /orders/{orderId} {
+        allow read: if isStoreMember(storeId);
+        allow write: if false;
+      }
+
+      match /stock_movements/{movementId} {
+        allow read: if isAdmin(storeId);
+        allow write: if false;
+      }
+
+      match /counters/{counterId} {
+        allow read: if isAdmin(storeId);
+        allow write: if false;
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

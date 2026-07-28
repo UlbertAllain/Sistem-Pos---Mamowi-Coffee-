@@ -1,0 +1,6 @@
+{
+  "firestore": {
+    "rules": "firestore.rules.migration",
+    "indexes": "firestore.indexes.json"
+  }
+}

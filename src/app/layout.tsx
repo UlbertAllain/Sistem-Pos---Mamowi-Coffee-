@@ -1,43 +1,18 @@
-import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import { Providers } from "@/components/providers";
-import { AuthProvider } from "@/components/auth-provider";
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-sans",
-});
+import type { Metadata } from 'next';
+import './globals.css';
+import './tactile.css';
+import { Providers } from './providers';
 
 export const metadata: Metadata = {
-  title: "KOFFEE POS — Sistem Kasir Coffee Shop",
-  description: "Sistem Point of Sale lengkap untuk coffee shop",
-  manifest: "/manifest.json",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "KOFFEE POS",
-  },
+  title: { default: 'Mamowi Coffee POS', template: '%s | Mamowi Coffee POS' },
+  description: 'Sistem point of sale Mamowi Coffee.',
 };
 
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 1,
-  themeColor: "#1e120d",
-};
-
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="id" className={inter.variable}>
-      <body className="min-h-screen antialiased">
-        <Providers>
-          <AuthProvider>{children}</AuthProvider>
-        </Providers>
+    <html lang="id">
+      <body>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
