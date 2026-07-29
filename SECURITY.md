@@ -1,56 +1,40 @@
-# KOFFEE POS Security Notes
+# Security Model — V5
 
-## Firestore Rules
+## Trust boundary
 
-This project uses `firestore.rules` as the first production security boundary.
-Deploy with:
+Firebase Authentication membuktikan identitas user. Browser mengirim Firebase ID token pada setiap mutation sensitif. Next.js Route Handler memverifikasi token melalui Firebase Admin Auth, memuat profil user dari toko, lalu memeriksa `isActive`, `storeId`, dan role.
 
-```bash
-firebase deploy --only firestore:rules
-```
+## Mutation server-only
 
-The rules require a signed-in Firebase Auth user and a matching active user
-document at:
+Operasi berikut tidak dapat ditulis langsung melalui Firebase Client SDK:
 
-```text
-stores/{storeId}/users/{firebaseUid}
-```
+- order;
+- counter transaksi;
+- stock movement;
+- perubahan `stockQty` produk;
+- checkout;
+- void transaksi;
+- penyesuaian stok.
 
-The user document must include:
+Firestore Rules menetapkan `allow write: if false` untuk order, movement, dan counter. Update produk dari client wajib mempertahankan `stockQty` dan `sku`.
 
-```json
-{
-  "storeId": "default",
-  "role": "owner",
-  "isActive": true
-}
-```
+## Otorisasi
 
-## Important PIN Login Limitation
+- `owner`, `manager`, `cashier`: checkout.
+- `owner`, `manager`: stock adjustment dan void.
+- `owner`, `manager`: CRUD katalog dan pengaturan.
+- `owner`: pengelolaan user dan role.
 
-The current PIN login flow reads `stores/default/users/{pinUserId}` directly
-without a Firebase Auth session. That cannot be made secure with Firestore
-Security Rules alone.
+## Credential
 
-For production, use one of these options:
+Service account hanya disimpan pada server melalui:
 
-- Disable PIN login and require Firebase Auth email/password.
-- Replace PIN login with a Cloud Function that validates the PIN server-side
-  and returns a custom Firebase Auth token.
+- `FIREBASE_ADMIN_PROJECT_ID`
+- `FIREBASE_ADMIN_CLIENT_EMAIL`
+- `FIREBASE_ADMIN_PRIVATE_KEY`
 
-## Current Role Intent
+Jangan gunakan prefix `NEXT_PUBLIC`, jangan masukkan JSON service account ke repository, dan jangan mengimpor `firebase-admin` dari Client Component.
 
-- `owner`: full access through the owner shortcut.
-- `manager`: operational admin for settings, menu, inventory, orders, shifts,
-  reports, and audit logs.
-- `cashier`: POS checkout, orders, customers, loyalty, and own shift.
-- `barista`: KDS order item updates and inventory operations.
-- `viewer`: dashboard/report reads.
+## Transaction integrity
 
-## Still Recommended
-
-- Move create order, void order, stock deduction, loyalty processing, and shift
-  cash updates into Cloud Functions so multi-document writes are atomic and not
-  trusted to the browser.
-- Add Firebase Emulator tests for the permission matrix before deploying rules
-  to a client project.
+Checkout server menghitung ulang harga, stok, diskon, total, pembayaran, kembalian, sequence, dan nomor order. Nilai snapshot dari browser tidak dipercaya. Order ID dan request fingerprint menyediakan retry idempotent.

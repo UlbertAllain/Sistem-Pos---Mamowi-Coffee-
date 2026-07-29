@@ -1,0 +1,17 @@
+export const firestorePaths = {
+  store: (storeId: string) => `stores/${storeId}`,
+  user: (storeId: string, userId: string) => `stores/${storeId}/users/${userId}`,
+  settings: (storeId: string) => `stores/${storeId}/settings/general`,
+  categories: (storeId: string) => `stores/${storeId}/categories`,
+  category: (storeId: string, categoryId: string) => `stores/${storeId}/categories/${categoryId}`,
+  products: (storeId: string) => `stores/${storeId}/products`,
+  skuIndex: (storeId: string, sku: string) => `stores/${storeId}/sku_indexes/${sku}`,
+  product: (storeId: string, productId: string) => `stores/${storeId}/products/${productId}`,
+  paymentMethods: (storeId: string) => `stores/${storeId}/payment_methods`,
+  paymentMethod: (storeId: string, id: string) => `stores/${storeId}/payment_methods/${id}`,
+  orders: (storeId: string) => `stores/${storeId}/orders`,
+  order: (storeId: string, orderId: string) => `stores/${storeId}/orders/${orderId}`,
+  stockMovements: (storeId: string) => `stores/${storeId}/stock_movements`,
+  stockMovement: (storeId: string, movementId: string) => `stores/${storeId}/stock_movements/${movementId}`,
+  counter: (storeId: string, counterId: string) => `stores/${storeId}/counters/${counterId}`,
+} as const;
