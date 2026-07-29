@@ -13,33 +13,73 @@ interface CatalogState {
   error: string | null;
 }
 
+interface CatalogSnapshot {
+  storeId: string | null;
+  categories: Category[];
+  products: Product[];
+  categoriesLoaded: boolean;
+  productsLoaded: boolean;
+  categoriesError: string | null;
+  productsError: string | null;
+}
+
+const initialSnapshot: CatalogSnapshot = {
+  storeId: null,
+  categories: [],
+  products: [],
+  categoriesLoaded: false,
+  productsLoaded: false,
+  categoriesError: null,
+  productsError: null,
+};
+
 export function useCatalog(storeId: string | undefined): CatalogState {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categoriesLoaded, setCategoriesLoaded] = useState(false);
-  const [productsLoaded, setProductsLoaded] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [snapshot, setSnapshot] = useState<CatalogSnapshot>(initialSnapshot);
 
   useEffect(() => {
     if (!storeId) return;
 
-    setCategoriesLoaded(false);
-    setProductsLoaded(false);
-    setError(null);
+    const unsubscribeCategories = subscribeCategories(
+      storeId,
+      (items) => {
+        setSnapshot((current) => ({
+          ...(current.storeId === storeId ? current : initialSnapshot),
+          storeId,
+          categories: items,
+          categoriesLoaded: true,
+          categoriesError: null,
+        }));
+      },
+      (cause) => {
+        setSnapshot((current) => ({
+          ...(current.storeId === storeId ? current : initialSnapshot),
+          storeId,
+          categoriesLoaded: true,
+          categoriesError: getErrorMessage(cause),
+        }));
+      },
+    );
 
-    const handleError = (cause: Error) => {
-      setError(getErrorMessage(cause));
-      setCategoriesLoaded(true);
-      setProductsLoaded(true);
-    };
-    const unsubscribeCategories = subscribeCategories(storeId, (items) => {
-      setCategories(items);
-      setCategoriesLoaded(true);
-    }, handleError);
-    const unsubscribeProducts = subscribeProducts(storeId, (items) => {
-      setProducts(items);
-      setProductsLoaded(true);
-    }, handleError);
+    const unsubscribeProducts = subscribeProducts(
+      storeId,
+      (items) => {
+        setSnapshot((current) => ({
+          ...(current.storeId === storeId ? current : initialSnapshot),
+          storeId,
+          products: items,
+          productsLoaded: true,
+          productsError: null,
+        }));
+      },
+      (cause) => {
+        setSnapshot((current) => ({
+          ...(current.storeId === storeId ? current : initialSnapshot),
+          storeId,
+          productsLoaded: true,
+          productsError: getErrorMessage(cause),
+        }));
+      },
+    );
 
     return () => {
       unsubscribeCategories();
@@ -47,10 +87,19 @@ export function useCatalog(storeId: string | undefined): CatalogState {
     };
   }, [storeId]);
 
+  if (!storeId || snapshot.storeId !== storeId) {
+    return {
+      categories: [],
+      products: [],
+      loading: Boolean(storeId),
+      error: null,
+    };
+  }
+
   return {
-    categories,
-    products,
-    loading: !categoriesLoaded || !productsLoaded,
-    error,
+    categories: snapshot.categories,
+    products: snapshot.products,
+    loading: !snapshot.categoriesLoaded || !snapshot.productsLoaded,
+    error: snapshot.categoriesError ?? snapshot.productsError,
   };
 }

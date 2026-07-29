@@ -27,18 +27,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let active = true;
-    let unsubscribe: () => void = () => undefined;
 
-    try {
-      unsubscribe = observeAuth(async (user) => {
+    const unsubscribe = observeAuth(
+      async (user) => {
         if (!active) return;
+
         setLoading(true);
         setError(null);
         setFirebaseUser(user);
         setProfile(null);
 
         if (!user) {
-          setProfile(null);
           setLoading(false);
           return;
         }
@@ -47,23 +46,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const nextProfile = await loadUserProfile(user);
           if (active) setProfile(nextProfile);
         } catch (cause) {
-          if (active) {
-            setProfile(null);
-            setError(getErrorMessage(cause));
-          }
+          if (active) setError(getErrorMessage(cause));
           try {
             await logout();
           } catch {
-            // The original profile error is more useful than a secondary sign-out failure.
+            // Keep the profile-loading error because it is the actionable failure.
           }
         } finally {
           if (active) setLoading(false);
         }
-      });
-    } catch (cause) {
-      setError(getErrorMessage(cause));
-      setLoading(false);
-    }
+      },
+      (cause) => {
+        if (!active) return;
+        setFirebaseUser(null);
+        setProfile(null);
+        setError(getErrorMessage(cause));
+        setLoading(false);
+      },
+    );
 
     return () => {
       active = false;

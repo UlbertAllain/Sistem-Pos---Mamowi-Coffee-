@@ -52,7 +52,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (!loading && !profile) router.replace('/login');
   }, [loading, profile, router]);
 
-  useEffect(() => setMobileOpen(false), [pathname]);
 
   if (loading || !profile) {
     return (
@@ -109,6 +108,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 className={`nav-link tactile-nav-link ${active ? 'nav-link-active' : ''}`}
+                onClick={() => setMobileOpen(false)}
               >
                 <span className="nav-number">{String(index + 1).padStart(2, '0')}</span>
                 <Icon size={17} />

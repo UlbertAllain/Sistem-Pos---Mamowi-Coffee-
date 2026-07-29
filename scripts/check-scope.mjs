@@ -56,4 +56,6 @@ if (findings.length > 0) {
   process.exit(1);
 }
 
-console.log("Scope audit lulus: hanya modul POS inti yang ditemukan.");
+process.stdout.write(
+  "Scope audit lulus: hanya modul POS inti yang ditemukan.\n",
+);

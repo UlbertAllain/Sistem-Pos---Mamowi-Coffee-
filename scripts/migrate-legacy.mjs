@@ -208,14 +208,14 @@ try {
     createdSkuIndexes += 1;
   }
 
-  console.log(JSON.stringify({
+  process.stdout.write(`${JSON.stringify({
     migratedCategories,
     skippedCategories,
     migratedProducts,
     skippedProducts,
     createdSkuIndexes,
-  }, null, 2));
-  console.log('Migrasi selesai tanpa menghapus collection lama. Verifikasi hasil sebelum deploy aplikasi produksi.');
+  }, null, 2)}\n`);
+  process.stdout.write('Migrasi selesai tanpa menghapus collection lama. Verifikasi hasil sebelum deploy aplikasi produksi.\n');
 } finally {
   await signOut(auth);
 }

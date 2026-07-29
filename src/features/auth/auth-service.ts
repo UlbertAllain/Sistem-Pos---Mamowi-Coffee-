@@ -28,9 +28,13 @@ export async function logout(): Promise<void> {
   await signOut(getFirebaseAuth());
 }
 
-export function observeAuth(callback: (user: User | null) => void): () => void {
-  return onAuthStateChanged(getFirebaseAuth(), callback);
+export function observeAuth(
+  callback: (user: User | null) => void,
+  onError: (error: Error) => void,
+): () => void {
+  return onAuthStateChanged(getFirebaseAuth(), callback, onError);
 }
+
 
 export async function loadUserProfile(user: User): Promise<UserProfile> {
   const { storeId } = getPublicEnv();

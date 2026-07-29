@@ -101,4 +101,4 @@ if (uniqueFindings.length) {
   console.error(`Architecture audit gagal:\n- ${uniqueFindings.join('\n- ')}`);
   process.exit(1);
 }
-console.log(`Architecture audit lulus untuk ${files.length} source file.`);
+process.stdout.write(`Architecture audit lulus untuk ${files.length} source file.\n`);

@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useState } from 'react';
 import { LoaderCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -16,21 +16,16 @@ interface CategoryFormProps {
 }
 
 export function CategoryForm({ storeId, category, onSaved, onCancel }: CategoryFormProps) {
-  const [name, setName] = useState('');
-  const [isActive, setIsActive] = useState(true);
+  const [name, setName] = useState(category?.name ?? '');
+  const [isActive, setIsActive] = useState(category?.isActive ?? true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    setName(category?.name ?? '');
-    setIsActive(category?.isActive ?? true);
-    setError(null);
-  }, [category]);
-
-  const handleSubmit = async (event: FormEvent) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitting(true);
     setError(null);
+
     try {
       await saveCategory(storeId, { name, isActive }, category?.id);
       onSaved();
@@ -43,10 +38,35 @@ export function CategoryForm({ storeId, category, onSaved, onCancel }: CategoryF
 
   return (
     <form className="form-stack" onSubmit={handleSubmit}>
-      <label className="field"><span>Nama kategori</span><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Contoh: Coffee" required /></label>
-      <label className="switch-row"><input type="checkbox" checked={isActive} onChange={(event) => setIsActive(event.target.checked)} /><div><strong>Kategori aktif</strong><span>Kategori nonaktif tidak tampil pada halaman kasir.</span></div></label>
+      <label className="field">
+        <span>Nama kategori</span>
+        <input
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          placeholder="Contoh: Coffee"
+          required
+        />
+      </label>
+      <label className="switch-row">
+        <input
+          type="checkbox"
+          checked={isActive}
+          onChange={(event) => setIsActive(event.target.checked)}
+        />
+        <div>
+          <strong>Kategori aktif</strong>
+          <span>Kategori nonaktif tidak tampil pada halaman kasir.</span>
+        </div>
+      </label>
       {error ? <div className="inline-alert inline-alert-error">{error}</div> : null}
-      <div className="form-actions"><Button variant="secondary" onClick={onCancel}>Batal</Button><Button type="submit" disabled={submitting}>{submitting ? <><LoaderCircle className="spin" size={16} /> Menyimpan...</> : 'Simpan kategori'}</Button></div>
+      <div className="form-actions">
+        <Button type="button" variant="secondary" onClick={onCancel}>Batal</Button>
+        <Button type="submit" disabled={submitting}>
+          {submitting ? (
+            <><LoaderCircle className="spin" size={16} /> Menyimpan...</>
+          ) : 'Simpan kategori'}
+        </Button>
+      </div>
     </form>
   );
 }

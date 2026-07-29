@@ -56,4 +56,4 @@ assert(finalRules.match(/match \/stock_movements\/\{movementId\}[\s\S]*?allow wr
 assert(finalRules.match(/match \/counters\/\{counterId\}[\s\S]*?allow write: if false;/), 'Client masih dapat menulis counter.');
 assert(finalRules.includes('request.resource.data.stockQty == resource.data.stockQty'), 'Update stok langsung dari client belum diblokir.');
 assert(finalRules.length < 7000, 'Rules V5 masih terlalu kompleks.');
-console.log('Static Firestore Rules audit V5 lulus: mutation sensitif hanya melalui server Admin.');
+process.stdout.write('Static Firestore Rules audit V5 lulus: mutation sensitif hanya melalui server Admin.\n');

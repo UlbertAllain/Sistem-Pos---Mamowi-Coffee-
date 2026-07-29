@@ -57,4 +57,4 @@ if (major < 20 || (major === 20 && minor < 9)) {
   console.error('Node.js minimal 20.9 diperlukan.');
   process.exit(1);
 }
-console.log('Preflight V5 lulus: Web SDK, Admin SDK, Node.js, dan Cloudinary valid.');
+process.stdout.write('Preflight V5 lulus: Web SDK, Admin SDK, Node.js, dan Cloudinary valid.\n');

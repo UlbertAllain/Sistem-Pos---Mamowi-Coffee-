@@ -86,7 +86,7 @@ try {
     name: 'QRIS', type: 'non_cash', isActive: true,
   })) created.push('payment_methods/qris');
 
-  console.log(created.length ? `Bootstrap membuat: ${created.join(', ')}` : 'Bootstrap dilewati: semua data awal sudah tersedia.');
+  process.stdout.write(`${created.length ? `Bootstrap membuat: ${created.join(', ')}` : 'Bootstrap dilewati: semua data awal sudah tersedia.'}\n`);
 } finally {
   await signOut(auth);
 }
