@@ -53,6 +53,9 @@ jobs:
           console.log(JSON.stringify(audit.metadata?.vulnerabilities ?? {}, null, 2));
           NODE
 
+      - name: Enforce dependency severity threshold
+        run: npm audit --audit-level=high
+
       - run: npm run preflight
         env:
           NEXT_PUBLIC_FIREBASE_API_KEY: test-key
