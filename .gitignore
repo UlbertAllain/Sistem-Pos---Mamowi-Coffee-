@@ -6,6 +6,8 @@ coverage/
 .env.local
 .env.*.local
 *.log
+*.tsbuildinfo
+*.patch
 firebase-debug.log
 firestore-debug.log
 .DS_Store
